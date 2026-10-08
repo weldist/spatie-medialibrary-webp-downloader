@@ -34,7 +34,7 @@ addMediaFromUrl('https://example.com/photo.jpg')   →   42/photo.webp   (re-enc
 ```
 
 - Implements Spatie's `Downloader` interface — you register it as the `media_downloader` in `config/media-library.php`.
-- Extends `DefaultDownloader`, so it **inherits** Spatie's SSL & User-Agent stream context and any future change to the download logic; it only adds a post-download re-encode step.
+- Downloads through Laravel's `Http` client with a total timeout and honours Spatie's `media_downloader_ssl` config. A slow or stalled server fails with `UnreachableUrl` instead of hanging the worker or leaving a truncated file behind.
 - Re-encodes via `spatie/image` — the *same* library media-library uses for its own conversions — so there are zero new dependencies and the driver enum (`gd` / `imagick` / `vips`) is identical.
 - Reads Spatie's existing `media-library.image_driver` config — no extra env var, no plugin config file.
 - Non-image payloads (PDF, video, archives) and configured skip MIME types pass through untouched. SVG and animated GIF are skipped by default.
@@ -85,12 +85,13 @@ The required PHP extension (`ext-gd` / `ext-imagick`) — or libvips for `vips` 
 
 ### Tuning
 
-`WebpDownloader` accepts two optional constructor arguments — both auto-resolved via the container with sensible defaults:
+`WebpDownloader` accepts three optional constructor arguments — all auto-resolved via the container with sensible defaults:
 
 | Argument | Default | Meaning |
 | --- | --- | --- |
 | `quality` | `85` | WebP quality (0–100) |
 | `skipMimes` | `['image/svg+xml', 'image/gif']` | MIME types that bypass conversion |
+| `timeout` | `30` | Seconds the whole download may take |
 
 To override, bind a custom instance in your own service provider:
 

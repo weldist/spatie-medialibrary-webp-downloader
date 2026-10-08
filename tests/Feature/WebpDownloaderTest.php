@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Weldist\Spatie\MediaLibrary\WebpDownloader\Tests\Feature;
 
+use Illuminate\Support\Facades\Http;
 use Weldist\Spatie\MediaLibrary\WebpDownloader\Tests\TestCase;
 use Weldist\Spatie\MediaLibrary\WebpDownloader\WebpDownloader;
 
@@ -31,7 +32,7 @@ class WebpDownloaderTest extends TestCase
         $beforeTemps = $this->mediaLibraryTempFiles();
 
         $result = $this->trackForCleanup(
-            (new WebpDownloader())->getTempFile('file://'.$source)
+            (new WebpDownloader())->getTempFile($this->fakeUrl($source))
         );
 
         $newTemps = array_values(array_diff($this->mediaLibraryTempFiles(), $beforeTemps));
@@ -55,7 +56,7 @@ class WebpDownloaderTest extends TestCase
         $source = $this->trackForCleanup($this->makePng());
 
         $result = $this->trackForCleanup(
-            (new WebpDownloader())->getTempFile('file://'.$source)
+            (new WebpDownloader())->getTempFile($this->fakeUrl($source))
         );
 
         $this->assertSame('image/webp', mime_content_type($result));
@@ -67,7 +68,7 @@ class WebpDownloaderTest extends TestCase
         $expectedBytes = file_get_contents($source);
 
         $result = $this->trackForCleanup(
-            (new WebpDownloader())->getTempFile('file://'.$source)
+            (new WebpDownloader())->getTempFile($this->fakeUrl($source))
         );
 
         $this->assertSame($expectedBytes, file_get_contents($result));
@@ -79,7 +80,7 @@ class WebpDownloaderTest extends TestCase
         $expectedBytes = file_get_contents($source);
 
         $result = $this->trackForCleanup(
-            (new WebpDownloader())->getTempFile('file://'.$source)
+            (new WebpDownloader())->getTempFile($this->fakeUrl($source))
         );
 
         $this->assertSame('image/gif', mime_content_type($result));
@@ -92,7 +93,7 @@ class WebpDownloaderTest extends TestCase
         $expectedBytes = file_get_contents($source);
 
         $result = $this->trackForCleanup(
-            (new WebpDownloader())->getTempFile('file://'.$source)
+            (new WebpDownloader())->getTempFile($this->fakeUrl($source))
         );
 
         $this->assertSame($expectedBytes, file_get_contents($result));
@@ -104,7 +105,7 @@ class WebpDownloaderTest extends TestCase
         $expectedBytes = file_get_contents($source);
 
         $result = $this->trackForCleanup(
-            (new WebpDownloader())->getTempFile('file://'.$source)
+            (new WebpDownloader())->getTempFile($this->fakeUrl($source))
         );
 
         $this->assertSame($expectedBytes, file_get_contents($result));
@@ -116,7 +117,7 @@ class WebpDownloaderTest extends TestCase
         $expectedBytes = file_get_contents($source);
 
         $result = $this->trackForCleanup(
-            (new WebpDownloader(skipMimes: ['image/jpeg']))->getTempFile('file://'.$source)
+            (new WebpDownloader(skipMimes: ['image/jpeg']))->getTempFile($this->fakeUrl($source))
         );
 
         $this->assertSame('image/jpeg', mime_content_type($result));
@@ -129,10 +130,10 @@ class WebpDownloaderTest extends TestCase
         $lowSource = $this->trackForCleanup($this->makeColorfulJpeg());
 
         $high = $this->trackForCleanup(
-            (new WebpDownloader(quality: 95))->getTempFile('file://'.$highSource)
+            (new WebpDownloader(quality: 95))->getTempFile($this->fakeUrl($highSource))
         );
         $low = $this->trackForCleanup(
-            (new WebpDownloader(quality: 10))->getTempFile('file://'.$lowSource)
+            (new WebpDownloader(quality: 10))->getTempFile($this->fakeUrl($lowSource))
         );
 
         $this->assertLessThan(filesize($high), filesize($low));
@@ -230,6 +231,15 @@ class WebpDownloaderTest extends TestCase
         );
 
         return $path;
+    }
+
+    private function fakeUrl(string $path): string
+    {
+        $url = 'https://example.test/'.basename($path);
+
+        Http::fake([$url => Http::response(file_get_contents($path))]);
+
+        return $url;
     }
 
     private function trackForCleanup(string $path): string
