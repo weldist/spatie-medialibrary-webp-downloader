@@ -122,6 +122,18 @@ So `obama.jpg` → `obama.webp` (basename preserved, extension swapped). Disk up
 
 To opt out, set `extra.laravel.dont-discover` in your root `composer.json` and rename manually with `->usingFileName(...)`.
 
+### Naming the File Up Front
+
+The rename moves the file on disk after it is written. Anything that reads the media in that window — a queued job dispatched from another `MediaHasBeenAddedEvent` listener, for example — can still see the old `.jpg` path and find the file gone. Chain `usingWebpExtension()` to name the file `.webp` before it is written:
+
+```php
+$post->addMediaFromUrl($url)
+    ->usingWebpExtension()
+    ->toMediaCollection('images');
+```
+
+The macro only changes the name when the downloaded file really is WebP, so skipped MIME types (SVG, GIF) keep their original extension. The listener then finds the name already ends with `.webp` and does nothing.
+
 ## Converting Existing Media
 
 For projects that already have thousands of JPEGs/PNGs on disk, the package ships an Artisan command — `media-library:webp-convert` — that walks the `media` table and re-encodes rows in place.

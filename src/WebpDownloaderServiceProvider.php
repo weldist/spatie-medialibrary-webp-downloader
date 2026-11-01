@@ -8,6 +8,7 @@ use Illuminate\Contracts\Filesystem\Filesystem;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\ServiceProvider;
 use Spatie\MediaLibrary\MediaCollections\Events\MediaHasBeenAddedEvent;
+use Spatie\MediaLibrary\MediaCollections\FileAdder;
 use Spatie\MediaLibrary\MediaCollections\Models\Media;
 use Weldist\Spatie\MediaLibrary\WebpDownloader\Console\ConvertExistingMediaToWebpCommand;
 
@@ -16,7 +17,24 @@ class WebpDownloaderServiceProvider extends ServiceProvider
     public function boot(): void
     {
         $this->registerCommands();
+        $this->registerFileAdderMacro();
         $this->registerFileNameAutoCorrection();
+    }
+
+    /**
+     * Lets the caller name a downloaded WebP file `.webp` before it is written,
+     * so nothing can read the media between the write and the rename below.
+     */
+    private function registerFileAdderMacro(): void
+    {
+        FileAdder::macro('usingWebpExtension', function (): FileAdder {
+            /** @var FileAdder $this */
+            if (@mime_content_type($this->pathToFile) === 'image/webp' && ! str_ends_with(strtolower($this->fileName), '.webp')) {
+                $this->setFileName(pathinfo($this->fileName, PATHINFO_FILENAME).'.webp');
+            }
+
+            return $this;
+        });
     }
 
     private function registerCommands(): void
